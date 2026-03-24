@@ -23,6 +23,18 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+const normalizeOrigin = (value, fallback) => {
+  const raw = (value || '').trim();
+  if (!raw) return fallback;
+
+  let origin = raw.replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(origin)) {
+    origin = `https://${origin}`;
+  }
+
+  return origin;
+};
+const frontendOrigin = normalizeOrigin(process.env.FRONTEND_URL, 'http://localhost:3000');
 
 app.use(
   helmet({
@@ -46,7 +58,7 @@ app.use(
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: frontendOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],

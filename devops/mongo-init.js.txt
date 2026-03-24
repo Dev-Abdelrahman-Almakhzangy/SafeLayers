@@ -1,11 +1,3 @@
 db = db.getSiblingDB('safelayers');
 db.createCollection('users');
 print('SafeLayers database initialized');
-```
-
-6. Save and close
-
-Then run:
-```
-docker-compose down
-docker-compose up --build

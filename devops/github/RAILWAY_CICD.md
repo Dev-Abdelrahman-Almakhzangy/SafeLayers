@@ -20,6 +20,7 @@ Both are built from their own Dockerfiles.
 2. Add a `backend` service using root directory `backend/`.
 3. Add a `frontend` service using root directory `frontend/`.
 4. Ensure both services use Dockerfile deployment.
+5. Delete/disable any old service still pointing to repo root (`/`).
 
 ## Required backend variables (Railway)
 
@@ -50,3 +51,15 @@ The frontend Nginx container proxies `/api/*` to `BACKEND_API_URL`, so browser t
 - PR to `main`: runs CI only for changed app(s)
 - Push to `main`: runs CI and deploys changed app(s) to Railway
 - Manual run (`workflow_dispatch`): can deploy both
+
+## Troubleshooting: "Railpack could not determine how to build the app"
+
+If logs show repository root contents (`backend/`, `frontend/`, `devops/`, etc.), Railway is deploying from `/` instead of a service folder.
+
+Fix:
+
+1. Open Railway service settings.
+2. Set `Root Directory` to:
+   - `backend` for backend service
+   - `frontend` for frontend service
+3. Redeploy.

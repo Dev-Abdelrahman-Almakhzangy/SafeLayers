@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || '/api';
+const configuredBaseUrl = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.PROD ? '/api' : configuredBaseUrl || '/api';
 
 const safeMethods = new Set(['get', 'head', 'options']);
 

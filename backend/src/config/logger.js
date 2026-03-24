@@ -10,8 +10,10 @@ const auditFormat = winston.format.combine(
   })
 );
 
+const logLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'warn' : 'info');
+
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
+  level: logLevel,
   format: auditFormat,
   transports: [
     // Console output

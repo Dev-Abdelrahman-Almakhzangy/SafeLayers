@@ -89,7 +89,7 @@ app.use(
       key: '_csrf',
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax',
     },
     ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
   })

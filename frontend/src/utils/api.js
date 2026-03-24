@@ -65,8 +65,20 @@ api.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toLowerCase();
 
   if (!safeMethods.has(method)) {
+    const token = await fetchCsrfToken();
     config.headers = config.headers || {};
-    config.headers['X-CSRF-Token'] = await fetchCsrfToken();
+    config.headers['X-CSRF-Token'] = token;
+
+    // Keep CSRF token in body too in case a proxy strips custom headers.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (!config.data.has('_csrf')) {
+        config.data.append('_csrf', token);
+      }
+    } else if (config.data && typeof config.data === 'object' && !Array.isArray(config.data)) {
+      config.data = { ...config.data, _csrf: token };
+    } else if (!config.data) {
+      config.data = { _csrf: token };
+    }
   }
 
   return config;

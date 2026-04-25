@@ -90,6 +90,9 @@ const generateAccountNumber = () => {
   return `${part1}-${part2}-${part3}`;
 };
 
+const sendDeactivatedAccountResponse = (res) =>
+  res.status(403).json({ error: 'Account is deactivated. Please contact an administrator.' });
+
 const serializeUser = (user) => ({
   id: user._id,
   fullName: user.fullName,
@@ -154,8 +157,13 @@ exports.register = async (req, res, next) => {
       role,
       adminSetupKey,
     } = req.body;
-    const requestedRole = role === 'admin' ? 'admin' : 'customer';
+    const requestedRole = typeof role === 'string' ? role.trim() : '';
     const expectedAdminSetupKey = process.env.ADMIN_SETUP_KEY || 'safelayers-admin-demo';
+
+    if (!['customer', 'admin'].includes(requestedRole)) {
+      logger.warn(`REGISTER DENIED: invalid role "${role}" from IP ${req.ip}`);
+      return res.status(400).json({ error: 'A valid portal role is required.' });
+    }
 
     if (requestedRole === 'admin' && adminSetupKey !== expectedAdminSetupKey) {
       logger.warn(`REGISTER DENIED: invalid admin setup key from IP ${req.ip}`);
@@ -228,6 +236,11 @@ exports.login = async (req, res, next) => {
       '+password +twoFactorSecret +twoFactorTempSecret +twoFactorTempSecretCreatedAt'
     );
 
+    if (user && !user.isActive) {
+      logger.warn(`LOGIN DEACTIVATED: Account ${accountNumber} from IP ${req.ip}`);
+      return sendDeactivatedAccountResponse(res);
+    }
+
     if (user && user.isLocked) {
       logger.warn(`LOGIN LOCKED: Account ${accountNumber} from IP ${req.ip}`);
       return res.status(423).json({
@@ -291,7 +304,18 @@ exports.confirmTotpSetup = async (req, res, next) => {
       '+twoFactorTempSecret +refreshTokens'
     );
 
-    if (!user || !user.twoFactorTempSecret) {
+    if (!user) {
+      return res.status(400).json({
+        error: 'Authenticator setup session is no longer valid. Please log in again.',
+      });
+    }
+
+    if (!user.isActive) {
+      logger.warn(`TOTP SETUP BLOCKED: User ${decoded.id} is deactivated`);
+      return sendDeactivatedAccountResponse(res);
+    }
+
+    if (!user.twoFactorTempSecret) {
       return res.status(400).json({
         error: 'Authenticator setup session is no longer valid. Please log in again.',
       });
@@ -332,7 +356,18 @@ exports.verifyTotpLogin = async (req, res, next) => {
 
     const user = await User.findById(decoded.id).select('+twoFactorSecret +refreshTokens');
 
-    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    if (!user) {
+      return res.status(400).json({
+        error: 'Authenticator app is not configured for this account.',
+      });
+    }
+
+    if (!user.isActive) {
+      logger.warn(`TOTP LOGIN BLOCKED: User ${decoded.id} is deactivated`);
+      return sendDeactivatedAccountResponse(res);
+    }
+
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
       return res.status(400).json({
         error: 'Authenticator app is not configured for this account.',
       });
@@ -382,6 +417,12 @@ exports.refreshToken = async (req, res, next) => {
     if (!user) {
       clearAuthCookies(res);
       return res.status(401).json({ error: 'User not found.' });
+    }
+
+    if (!user.isActive) {
+      clearAuthCookies(res);
+      logger.warn(`REFRESH BLOCKED: User ${user._id} is deactivated`);
+      return sendDeactivatedAccountResponse(res);
     }
 
     const hashedRefresh = hashToken(refreshToken);

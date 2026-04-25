@@ -32,7 +32,7 @@ const loginRules = [
 // ─── Register validation rules ────────────────────────
 const registerRules = [
   body('role')
-    .optional()
+    .notEmpty().withMessage('Role selection is required')
     .isIn(['customer', 'admin']).withMessage('Role must be customer or admin'),
   body('fullName')
     .trim()

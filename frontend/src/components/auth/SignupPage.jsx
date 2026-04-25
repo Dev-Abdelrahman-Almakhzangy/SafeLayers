@@ -18,7 +18,7 @@ const passwordStrength = (password) => {
 export default function SignupPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [portal, setPortal] = useState('customer');
+  const [portal, setPortal] = useState('');
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -41,6 +41,7 @@ export default function SignupPage() {
   const setField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const validateStep1 = () => {
+    if (!portal) return 'Choose Customer Portal or Admin Portal first.';
     if (!form.fullName.trim()) return 'Full name is required.';
     if (!form.email.includes('@')) return 'Valid email is required.';
     if (!form.phone.trim()) return 'Phone number is required.';
@@ -335,6 +336,10 @@ export default function SignupPage() {
               <p style={{ color: 'var(--text2)', fontSize: '.88rem', marginBottom: '1.5rem' }}>
                 Step 2 of 2 - Password and PIN
               </p>
+
+              <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+                Creating a <strong>{portal === 'admin' ? 'Admin' : 'Customer'}</strong> account.
+              </div>
 
               {error && <div className="alert alert-error">{error}</div>}
 
